@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Dashboard – Quản lý Tồn kho</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+:root{--bg:#f1f5f9;--bg2:#ffffff;--bg3:#f8fafc;--border:#e2e8f0;--b:#2563eb;--g:#059669;--a:#d97706;--r:#dc2626;--p:#7c3aed;--c:#0891b2;--gr:#94a3b8;--text:#0f172a;--t2:#475569;--t3:#94a3b8;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
+
+.header{background:#ffffff;border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(0,0,0,.06);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{width:40px;height:40px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.htitle{font-size:17px;font-weight:700;}
+.hsub{font-size:11px;color:var(--t2);margin-top:2px;}
+.badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge.a{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--a);}
+.badge.g{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--g);}
+.pulse{width:7px;height:7px;background:var(--a);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.4);}}
+
+.main{padding:22px 32px;max-width:1600px;margin:0 auto;}
+.section-label{font-size:11px;font-weight:600;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* STATUS BADGES */
+.status-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:26px;}
+.status-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px;transition:transform .2s;}
+.status-card:hover{transform:translateY(-2px);}
+.status-ico{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.status-lbl{font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
+.status-val{font-size:24px;font-weight:800;letter-spacing:-1px;}
+.status-sub{font-size:10px;color:var(--t3);margin-top:3px;}
+
+/* ROWS */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:24px;}
+.row21{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px;}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px 24px;}
+.card-title{font-size:13px;font-weight:700;margin-bottom:3px;}
+.card-desc{font-size:11px;color:var(--t3);margin-bottom:16px;}
+
+/* PIPELINE FUNNEL */
+.funnel-wrap{padding:8px 0;}
+.funnel-item{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.funnel-label{width:130px;font-size:12px;color:var(--t2);flex-shrink:0;}
+.funnel-bar-outer{flex:1;background:var(--bg3);border-radius:4px;height:28px;overflow:hidden;position:relative;}
+.funnel-bar-inner{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 10px;}
+.funnel-bar-text{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;}
+.funnel-count{width:40px;text-align:right;font-size:12px;font-weight:700;}
+
+/* PROJECT BREAKDOWN */
+.proj-section{margin-bottom:18px;}
+.proj-name{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;display:flex;justify-content:space-between;}
+.proj-stack{display:flex;height:28px;border-radius:6px;overflow:hidden;gap:1px;}
+.proj-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.9);transition:all .3s;}
+.proj-legend{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
+.proj-leg-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t3);}
+.proj-leg-dot{width:8px;height:8px;border-radius:2px;}
+
+/* INVENTORY TABLE */
+.inv-row{display:grid;grid-template-columns:1fr 60px 60px 80px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(31,45,68,.4);}
+.inv-row:last-child{border-bottom:none;}
+.inv-row.header-row{color:var(--t3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding-bottom:8px;}
+.inv-type{font-size:12px;font-weight:600;}
+.inv-avail{font-size:14px;font-weight:700;text-align:center;}
+.inv-val{font-size:11px;font-weight:600;text-align:right;color:var(--t2);}
+.inv-pct{font-size:10px;color:var(--t3);text-align:center;}
+
+/* LEGEND */
+.leg{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+.leg-i{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2);}
+.leg-dot{width:10px;height:10px;border-radius:3px;}
+
+.footer{text-align:center;padding:20px;border-top:1px solid var(--border);font-size:11px;color:var(--t3);margin-top:8px;}
+.footer span{color:var(--a);font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="logo">📦</div>
+    <div>
+      <div class="htitle">Inventory Dashboard – Quản lý Tồn kho</div>
+      <div class="hsub">Trạng thái sản phẩm · Tồn kho theo dự án & loại căn · Giá trị tồn</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="pulse"></div>
+    <span style="font-size:11px;color:var(--t3)">160 căn · 3 dự án</span>
+    <div class="badge a">36 căn available</div>
+    <div class="badge g">Live Data</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STATUS CARDS -->
+  <div class="section-label">Trạng thái căn hộ toàn danh mục</div>
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="status-ico" style="background:rgba(16,185,129,.15)">🟢</div>
+      <div>
+        <div class="status-lbl">Có thể bán (Available)</div>
+        <div class="status-val" style="color:var(--g)">36</div>
+        <div class="status-sub">22.5% tổng danh mục</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-ico" style="background:rgba(59,130,246,.15)">📋</div>
+      <div>
+        <div class="status-lbl">Đã ký HĐMB</div>
+        <div class="status-val" style="color:var(--b)">54</div>
+        <div class="status-sub">33.8% tổng danh mục</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-ico" style="background:rgba(139,92,246,.15)">🏠</div>
+      <div>
+        <div class="status-lbl">Đã bàn giao</div>
+        <div class="status-val" style="color:var(--p)">47</div>
+        <div class="status-sub">29.4% tổng danh mục</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-ico" style="background:rgba(239,68,68,.15)">🔒</div>
+      <div>
+        <div class="status-lbl">Không có sẵn</div>
+        <div class="status-val" style="color:var(--r)">19</div>
+        <div class="status-sub">11.9% tổng danh mục</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-ico" style="background:rgba(245,158,11,.15)">⏳</div>
+      <div>
+        <div class="status-lbl">Đang chuẩn bị</div>
+        <div class="status-val" style="color:var(--a)">4</div>
+        <div class="status-sub">2.5% tổng danh mục</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE + DONUT -->
+  <div class="row21">
+    <div class="card">
+      <div class="card-title">Phễu trạng thái sản phẩm</div>
+      <div class="card-desc">Phân bổ 160 căn theo từng giai đoạn trong vòng đời sản phẩm</div>
+
+      <!-- Stacked by project -->
+      <div class="proj-section">
+        <div class="proj-name">
+          <span>Vinhomes Grand Park <span style="color:var(--t3);font-weight:400">(100 căn)</span></span>
+          <span style="color:var(--g)">58% hấp thụ</span>
+        </div>
+        <div class="proj-stack">
+          <div class="proj-seg" style="width:19%;background:#10b981" title="Available: 19">19</div>
+          <div class="proj-seg" style="width:36%;background:#3b82f6" title="Contract signed: 36">36</div>
+          <div class="proj-seg" style="width:29%;background:#8b5cf6" title="Handed over: 29">29</div>
+          <div class="proj-seg" style="width:14%;background:#ef4444" title="Not available: 14">14</div>
+          <div class="proj-seg" style="width:2%;background:#f59e0b" title="Preparing: 2"></div>
+        </div>
+      </div>
+
+      <div class="proj-section">
+        <div class="proj-name">
+          <span>Masteri Waterfront <span style="color:var(--t3);font-weight:400">(40 căn)</span></span>
+          <span style="color:var(--a)">47.5% hấp thụ</span>
+        </div>
+        <div class="proj-stack">
+          <div class="proj-seg" style="width:32.5%;background:#10b981" title="Available: 13">13</div>
+          <div class="proj-seg" style="width:25%;background:#3b82f6" title="Contract signed: 10">10</div>
+          <div class="proj-seg" style="width:30%;background:#8b5cf6" title="Handed over: 12">12</div>
+          <div class="proj-seg" style="width:7.5%;background:#ef4444" title="Not available: 3">3</div>
+          <div class="proj-seg" style="width:5%;background:#f59e0b" title="Preparing: 2">2</div>
+        </div>
+      </div>
+
+      <div class="proj-section" style="margin-bottom:4px">
+        <div class="proj-name">
+          <span>The Manor Central Park <span style="color:var(--t3);font-weight:400">(20 căn)</span></span>
+          <span style="color:var(--g)">70% hấp thụ</span>
+        </div>
+        <div class="proj-stack">
+          <div class="proj-seg" style="width:20%;background:#10b981" title="Available: 4">4</div>
+          <div class="proj-seg" style="width:40%;background:#3b82f6" title="Contract signed: 8">8</div>
+          <div class="proj-seg" style="width:30%;background:#8b5cf6" title="Handed over: 6">6</div>
+          <div class="proj-seg" style="width:10%;background:#ef4444" title="Not available: 2">2</div>
+        </div>
+      </div>
+
+      <div class="proj-legend">
+        <div class="proj-leg-i"><div class="proj-leg-dot" style="background:#10b981"></div>Available</div>
+        <div class="proj-leg-i"><div class="proj-leg-dot" style="background:#3b82f6"></div>Đã ký HĐMB</div>
+        <div class="proj-leg-i"><div class="proj-leg-dot" style="background:#8b5cf6"></div>Đã bàn giao</div>
+        <div class="proj-leg-i"><div class="proj-leg-dot" style="background:#ef4444"></div>Không có sẵn</div>
+        <div class="proj-leg-i"><div class="proj-leg-dot" style="background:#f59e0b"></div>Đang chuẩn bị</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cơ cấu trạng thái tổng</div>
+      <div class="card-desc">Tỷ lệ phân bổ 160 căn</div>
+      <canvas id="cStatusDonut" height="220"></canvas>
+      <div style="margin-top:16px;padding:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px">
+        <div style="font-size:10px;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Tổng giá trị tồn kho available</div>
+        <div style="font-size:22px;font-weight:800;color:var(--g)">203.8 tỷ</div>
+        <div style="font-size:11px;color:var(--t3)">36 căn · Sẵn sàng để bán</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TYPE STACKED + INVENTORY TABLE -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">Trạng thái theo loại sản phẩm</div>
+      <div class="card-desc">Phân bổ tất cả trạng thái theo từng loại căn</div>
+      <div class="leg">
+        <div class="leg-i"><div class="leg-dot" style="background:#10b981"></div>Available</div>
+        <div class="leg-i"><div class="leg-dot" style="background:#3b82f6"></div>Ký HĐMB</div>
+        <div class="leg-i"><div class="leg-dot" style="background:#8b5cf6"></div>Bàn giao</div>
+        <div class="leg-i"><div class="leg-dot" style="background:#ef4444"></div>Không có sẵn</div>
+        <div class="leg-i"><div class="leg-dot" style="background:#f59e0b"></div>Chuẩn bị</div>
+      </div>
+      <div style="height:220px"><canvas id="cTypeStack"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Tồn kho Available theo loại căn</div>
+      <div class="card-desc">Căn sẵn sàng bán và giá trị niêm yết tương ứng</div>
+
+      <div class="inv-row header-row">
+        <div>Loại căn</div>
+        <div style="text-align:center">Số căn</div>
+        <div style="text-align:center">%</div>
+        <div style="text-align:right">Giá trị</div>
+      </div>
+
+      <div class="inv-row">
+        <div>
+          <div class="inv-type">Căn hộ 3PN</div>
+          <div style="margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:100%;width:100%;background:var(--b)"></div></div>
+        </div>
+        <div class="inv-avail" style="color:var(--g)">10</div>
+        <div class="inv-pct">27.8%</div>
+        <div class="inv-val">103.5 tỷ</div>
+      </div>
+      <div class="inv-row">
+        <div>
+          <div class="inv-type">Căn hộ 2PN</div>
+          <div style="margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:100%;width:60%;background:var(--b)"></div></div>
+        </div>
+        <div class="inv-avail" style="color:var(--g)">6</div>
+        <div class="inv-pct">16.7%</div>
+        <div class="inv-val">50.5 tỷ</div>
+      </div>
+      <div class="inv-row">
+        <div>
+          <div class="inv-type">Shophouse</div>
+          <div style="margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:100%;width:40%;background:var(--a)"></div></div>
+        </div>
+        <div class="inv-avail" style="color:var(--g)">4</div>
+        <div class="inv-pct">11.1%</div>
+        <div class="inv-val">23.8 tỷ</div>
+      </div>
+      <div class="inv-row">
+        <div>
+          <div class="inv-type">Nhà phố</div>
+          <div style="margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:100%;width:30%;background:var(--a)"></div></div>
+        </div>
+        <div class="inv-avail" style="color:var(--g)">3</div>
+        <div class="inv-pct">8.3%</div>
+        <div class="inv-val">11.7 tỷ</div>
+      </div>
+      <div class="inv-row">
+        <div>
+          <div class="inv-type">Biệt thự</div>
+          <div style="margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:100%;width:20%;background:var(--p)"></div></div>
+        </div>
+        <div class="inv-avail" style="color:var(--g)">2</div>
+        <div class="inv-pct">5.6%</div>
+        <div class="inv-val">7.4 tỷ</div>
+      </div>
+      <div class="inv-row">
+        <div>
+          <div class="inv-type">Căn hộ 1PN</div>
+          <div style="margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:100%;width:10%;background:var(--b)"></div></div>
+        </div>
+        <div class="inv-avail" style="color:var(--g)">1</div>
+        <div class="inv-pct">2.8%</div>
+        <div class="inv-val">6.9 tỷ</div>
+      </div>
+      <div class="inv-row" style="border-bottom:none;margin-top:4px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-weight:700;font-size:13px">TỔNG CỘNG</div>
+        <div class="inv-avail" style="color:var(--g);font-weight:800">36</div>
+        <div class="inv-pct" style="color:var(--g);font-weight:700">100%</div>
+        <div class="inv-val" style="color:var(--g);font-weight:800;font-size:13px">203.8 tỷ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ngày tồn kho -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Chỉ số vòng đời sản phẩm</div>
+    <div class="card-desc">Số ngày từ niêm yết đến ký cọc và hiệu suất hấp thụ theo dự án</div>
+    <div style="height:160px"><canvas id="cDaysBar"></canvas></div>
+  </div>
+
+</div>
+
+<div class="footer">Dữ liệu kết nối trực tiếp từ Power BI · Cập nhật tự động</div>
+
+<script>
+Chart.defaults.color='#64748b';Chart.defaults.borderColor='#e2e8f0';Chart.defaults.font.family='Inter';
+
+// Status donut
+new Chart(document.getElementById('cStatusDonut'),{type:'doughnut',data:{labels:['Available','Đã ký HĐMB','Đã bàn giao','Không có sẵn','Đang chuẩn bị'],datasets:[{data:[36,54,47,19,4],backgroundColor:['rgba(16,185,129,.8)','rgba(59,130,246,.8)','rgba(139,92,246,.8)','rgba(239,68,68,.8)','rgba(245,158,11,.8)'],borderColor:'#111827',borderWidth:3,hoverOffset:8}]},options:{responsive:true,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10},color:'#94a3b8'}},tooltip:{backgroundColor:'#ffffff',borderColor:'#e2e8f0',borderWidth:1,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed} căn (${(ctx.parsed/160*100).toFixed(1)}%)`}}}}});
+
+// Type stacked bar
+new Chart(document.getElementById('cTypeStack'),{type:'bar',data:{labels:['Căn hộ 2PN','Studio','Căn hộ 3PN','Căn hộ 1PN','Nhà phố','Shophouse','Biệt thự'],datasets:[
+  {label:'Available',data:[6,0,10,1,3,4,2],backgroundColor:'rgba(16,185,129,.8)',borderRadius:{topLeft:0,topRight:0}},
+  {label:'Ký HĐMB',data:[14,7,11,7,5,6,4],backgroundColor:'rgba(59,130,246,.8)'},
+  {label:'Bàn giao',data:[9,11,8,10,3,3,3],backgroundColor:'rgba(139,92,246,.8)'},
+  {label:'Không có sẵn',data:[4,4,2,3,2,2,2],backgroundColor:'rgba(239,68,68,.8)'},
+  {label:'Chuẩn bị',data:[1,0,2,0,1,0,0],backgroundColor:'rgba(245,158,11,.8)',borderRadius:{topLeft:4,topRight:4}}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#ffffff',borderColor:'#e2e8f0',borderWidth:1,mode:'index',intersect:false}},scales:{x:{stacked:true,grid:{color:'rgba(226,232,240,.8)'},ticks:{font:{size:9}}},y:{stacked:true,grid:{color:'rgba(226,232,240,.8)'},ticks:{font:{size:10}}}}}});
+
+// Days & absorption
+new Chart(document.getElementById('cDaysBar'),{type:'bar',data:{labels:['Vinhomes Grand Park','Masteri Waterfront','The Manor Central Park'],datasets:[
+  {label:'Số ngày tồn kho TB',data:[40,35,28],backgroundColor:['rgba(245,158,11,.7)','rgba(59,130,246,.7)','rgba(16,185,129,.7)'],borderColor:['#f59e0b','#3b82f6','#10b981'],borderWidth:1.5,borderRadius:8,yAxisID:'y'},
+  {type:'line',label:'Tỷ lệ hấp thụ (%)',data:[58,47.5,70],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,.1)',borderWidth:2.5,pointRadius:8,pointBackgroundColor:'#8b5cf6',fill:false,yAxisID:'y2'}
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,font:{size:11},color:'#94a3b8'}},tooltip:{backgroundColor:'#ffffff',borderColor:'#e2e8f0',borderWidth:1,callbacks:{label:ctx=>ctx.datasetIndex===0?` Tồn kho TB: ${ctx.parsed.y} ngày`:` Hấp thụ: ${ctx.parsed.y}%`}}},scales:{x:{grid:{color:'rgba(226,232,240,.8)'}},y:{position:'left',grid:{color:'rgba(226,232,240,.8)'},title:{display:true,text:'Ngày',color:'#64748b',font:{size:10}},ticks:{font:{size:10}}},y2:{position:'right',grid:{display:false},min:0,max:100,title:{display:true,text:'%',color:'#64748b',font:{size:10}},ticks:{callback:v=>v+'%',font:{size:10}}}}}});
+</script>
+</body>
+</html>
