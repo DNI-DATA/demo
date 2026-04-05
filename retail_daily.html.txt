@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phân tích Đại lý – Real Estate Demo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f1f5f9;
+  --bg2: #ffffff;
+  --bg3: #f8fafc;
+  --border: #e2e8f0;
+  --accent: #2563eb;
+  --accent2: #059669;
+  --accent3: #d97706;
+  --accent4: #dc2626;
+  --accent5: #7c3aed;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+
+.header {
+  background: #ffffff;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+.report-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.badge { background: #f0fdf4; color: var(--accent2); padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #bbf7d0; }
+.header-right { display: flex; align-items: center; gap: 12px; color: var(--text2); font-size: 12px; }
+.header-right span { background: var(--bg); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); }
+
+.nav-tabs {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+}
+.nav-tab {
+  padding: 10px 18px; font-size: 13px; font-weight: 500;
+  color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
+  text-decoration: none; display: inline-block; transition: all 0.15s;
+}
+.nav-tab:hover { color: var(--accent); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+.main { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+/* KPI */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.kpi-card {
+  background: var(--bg2); border-radius: 10px; border: 1px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+}
+.kpi-icon { width: 40px; height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.kpi-info { flex: 1; min-width: 0; }
+.kpi-label { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.kpi-value { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.1; white-space: nowrap; }
+.kpi-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.kpi-delta { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; display: inline-block; margin-top: 2px; }
+.delta-up { background: #dcfce7; color: #16a34a; }
+.delta-down { background: #fee2e2; color: #dc2626; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+.card { background: var(--bg2); border-radius: 10px; border: 1px solid var(--border); padding: 16px 20px; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.card-subtitle { font-size: 11px; color: var(--text3); margin-bottom: 12px; }
+
+/* Agency table */
+.agency-table { width: 100%; border-collapse: collapse; }
+.agency-table th { text-align: left; font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.agency-table td { padding: 7px 8px; font-size: 12px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+.agency-table tr:last-child td { border-bottom: none; }
+.perf-bar-bg { background: #f1f5f9; border-radius: 3px; height: 6px; margin-top: 3px; }
+.perf-bar { border-radius: 3px; height: 6px; }
+.rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; }
+.r1 { background: #fef3c7; color: #d97706; }
+.r2 { background: #f1f5f9; color: #64748b; }
+.r3 { background: #fef3c7; color: #92400e; }
+.rn { background: #f8fafc; color: var(--text3); }
+
+/* Price range labels */
+.price-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+/* Footer */
+.footer { text-align: center; color: var(--text3); font-size: 11px; padding: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="report-title">Phân tích Đại lý</div>
+    <span class="badge">Channel & Agency</span>
+  </div>
+  <div class="header-right">
+    <span>📅 Q1 2025</span>
+    <span>🏢 Toàn hệ thống</span>
+    <span style="background:#eff6ff;border-color:#bfdbfe;color:var(--accent)">● Live Demo</span>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <a href="RE_Index.html" class="nav-tab">🏠 Tổng quan</a>
+  <a href="RE_Dashboard_Demo.html" class="nav-tab">📊 Hiệu suất KD</a>
+  <a href="RE_TonKho_Demo.html" class="nav-tab">🏗️ Tồn kho</a>
+  <a href="RE_SalesPerformance_Demo.html" class="nav-tab">🏆 Sales</a>
+  <a href="RE_KhachHang_Demo.html" class="nav-tab">👥 Khách hàng</a>
+  <a href="RE_DaiLy_Demo.html" class="nav-tab active">🤝 Đại lý</a>
+</div>
+
+<div class="main">
+
+  <!-- KPI Row: 5 cards -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#eff6ff">🏠</div>
+      <div class="kpi-info">
+        <div class="kpi-label">Số căn bán</div>
+        <div class="kpi-value">94</div>
+        <div class="kpi-sub">Qua kênh đại lý</div>
+        <div class="kpi-delta delta-up">▲ +7 vs Q4/2024</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#f0fdf4">📄</div>
+      <div class="kpi-info">
+        <div class="kpi-label">Số ký HĐMB</div>
+        <div class="kpi-value">91</div>
+        <div class="kpi-sub">Tỷ lệ chuyển đổi: 96.8%</div>
+        <div class="kpi-delta delta-up">▲ Tốt</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#fff7ed">💎</div>
+      <div class="kpi-info">
+        <div class="kpi-label">DT niêm yết</div>
+        <div class="kpi-value">684 tỷ</div>
+        <div class="kpi-sub">Tổng giá listing</div>
+        <div class="kpi-delta delta-up">▲ +8.2%</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#faf5ff">✍️</div>
+      <div class="kpi-info">
+        <div class="kpi-label">GT HĐMB</div>
+        <div class="kpi-value">657 tỷ</div>
+        <div class="kpi-sub">Chiết khấu: 3.9%</div>
+        <div class="kpi-delta delta-up">▲ +6.1%</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#fef2f2">💳</div>
+      <div class="kpi-info">
+        <div class="kpi-label">Tiền đã nộp</div>
+        <div class="kpi-value">342 tỷ</div>
+        <div class="kpi-sub">Thu suất: 52.1%</div>
+        <div class="kpi-delta delta-up">▲ Đúng tiến độ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Pareto + Top Agency -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Giá niêm yết & SL căn theo Vendor (Pareto)</div>
+      <div class="card-subtitle">Bar = doanh thu niêm yết (tỷ), Line = % tích lũy số căn bán</div>
+      <div style="position:relative;height:240px">
+        <canvas id="paretoChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Đại lý – Số căn bán</div>
+      <div class="card-subtitle">Xếp hạng theo số lượng căn thành công trong kỳ</div>
+      <div style="position:relative;height:240px">
+        <canvas id="top10Chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Box plot (simulated) + Payment donut -->
+  <div class="grid-2-1">
+    <div class="card">
+      <div class="card-title">Phân bổ giá niêm yết theo Loại sản phẩm</div>
+      <div class="card-subtitle">Min / Q1 / Median / Q3 / Max (tỷ đồng/căn) – mô phỏng box plot</div>
+      <div style="position:relative;height:220px">
+        <canvas id="boxChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cơ cấu Phương thức thanh toán</div>
+      <div class="card-subtitle">Theo số căn đã ký HĐMB qua đại lý</div>
+      <div style="display:flex;align-items:center;gap:10px;height:220px">
+        <div style="flex:1;height:200px;position:relative">
+          <canvas id="payDonut"></canvas>
+        </div>
+        <div style="flex:0 0 105px" id="payLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Agency detail table -->
+  <div class="card">
+    <div class="card-title">Hiệu suất chi tiết Đại lý – Top 10</div>
+    <div class="card-subtitle">Số căn, doanh thu niêm yết, HĐMB đã ký, tỷ lệ thu tiền</div>
+    <table class="agency-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tên Đại lý</th>
+          <th style="text-align:right">Số căn</th>
+          <th style="text-align:right">DT niêm yết</th>
+          <th style="text-align:right">GT HĐMB</th>
+          <th style="text-align:right">Tiền thu</th>
+          <th style="text-align:right">Thu suất</th>
+          <th style="width:130px">Tiến độ thu</th>
+        </tr>
+      </thead>
+      <tbody id="agencyBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">Demo dữ liệu bất động sản · Cập nhật: 05/04/2025</div>
+
+<script>
+Chart.defaults.borderColor = '#e2e8f0';
+Chart.defaults.color = '#94a3b8';
+
+// ── 1. Pareto Chart ───────────────────────────────────
+const vendors = [
+  { name: 'Century 21', revenue: 142, units: 19 },
+  { name: 'DKRA',       revenue: 118, units: 16 },
+  { name: 'Savills',    revenue: 96,  units: 13 },
+  { name: 'Cushman',    revenue: 88,  units: 12 },
+  { name: 'JLL',        revenue: 74,  units: 10 },
+  { name: 'Đất Xanh',   revenue: 65,  units: 9  },
+  { name: 'Novaland',   revenue: 48,  units: 7  },
+  { name: 'Khác',       revenue: 53,  units: 8  }
+];
+const totalUnits = vendors.reduce((s, v) => s + v.units, 0);
+let cumPct = 0;
+const cumulativeData = vendors.map(v => { cumPct += v.units / totalUnits * 100; return +cumPct.toFixed(1); });
+
+const paretoCtx = document.getElementById('paretoChart').getContext('2d');
+new Chart(paretoCtx, {
+  type: 'bar',
+  data: {
+    labels: vendors.map(v => v.name),
+    datasets: [
+      {
+        type: 'bar',
+        label: 'DT niêm yết (tỷ)',
+        data: vendors.map(v => v.revenue),
+        backgroundColor: vendors.map((_, i) => i === 0 ? '#2563eb' : i < 3 ? '#3b82f6' : '#93c5fd'),
+        borderRadius: 4, yAxisID: 'y', order: 2
+      },
+      {
+        type: 'line',
+        label: '% tích lũy (căn)',
+        data: cumulativeData,
+        borderColor: '#d97706', backgroundColor: 'transparent',
+        pointBackgroundColor: '#d97706', pointRadius: 4,
+        borderWidth: 2, tension: 0.3, yAxisID: 'y2', order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 }, color: '#475569' } },
+      tooltip: {
+        backgroundColor: '#fff', borderColor: '#e2e8f0', borderWidth: 1,
+        titleColor: '#0f172a', bodyColor: '#475569'
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { beginAtZero: true, grid: { color: 'rgba(226,232,240,0.7)' }, ticks: { font: { size: 10 }, callback: v => v + ' tỷ' }, title: { display: false } },
+      y2: { position: 'right', min: 0, max: 100, grid: { display: false }, ticks: { font: { size: 10 }, callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── 2. Top 10 Agency horizontal bar ──────────────────
+const top10 = [
+  { name: 'Century 21', units: 19 },
+  { name: 'DKRA',       units: 16 },
+  { name: 'Savills',    units: 13 },
+  { name: 'Cushman',    units: 12 },
+  { name: 'JLL',        units: 10 },
+  { name: 'Đất Xanh',   units: 9  },
+  { name: 'Novaland',   units: 7  },
+  { name: 'An Gia',     units: 6  },
+  { name: 'Phú Long',   units: 5  },
+  { name: 'Nam Land',   units: 4  }
+].reverse();
+const top10Ctx = document.getElementById('top10Chart').getContext('2d');
+new Chart(top10Ctx, {
+  type: 'bar',
+  data: {
+    labels: top10.map(d => d.name),
+    datasets: [{
+      label: 'Số căn',
+      data: top10.map(d => d.units),
+      backgroundColor: top10.map((d, i) => {
+        const alpha = 0.4 + (i / 9) * 0.6;
+        return `rgba(37,99,235,${alpha.toFixed(2)})`;
+      }),
+      borderRadius: 3
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#fff', borderColor: '#e2e8f0', borderWidth: 1,
+        titleColor: '#0f172a', bodyColor: '#475569',
+        callbacks: { label: c => ` ${c.parsed.x} căn` }
+      }
+    },
+    scales: {
+      x: { beginAtZero: true, grid: { color: 'rgba(226,232,240,0.8)' }, ticks: { font: { size: 10 }, stepSize: 2 } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// ── 3. Box plot (simulated with floating bars) ────────
+const productTypes = ['Shophouse', 'Biệt thự', 'Căn hộ HH', 'Căn hộ TT', 'Officetel', 'Land'];
+const boxData = [
+  { min: 12, q1: 18, median: 25, q3: 35, max: 58 },
+  { min: 8,  q1: 15, median: 22, q3: 32, max: 52 },
+  { min: 4,  q1: 7,  median: 11, q3: 16, max: 24 },
+  { min: 2,  q1: 3.5, median: 5, q3: 7.5, max: 12 },
+  { min: 1.5, q1: 2.5, median: 3.5, q3: 5, max: 8 },
+  { min: 3,  q1: 5,  median: 8,  q3: 12, max: 20 }
+];
+const boxCtx = document.getElementById('boxChart').getContext('2d');
+new Chart(boxCtx, {
+  type: 'bar',
+  data: {
+    labels: productTypes,
+    datasets: [
+      {
+        label: 'Khoảng tứ vị phân (Q1–Q3)',
+        data: boxData.map(d => [d.q1, d.q3]),
+        backgroundColor: 'rgba(37,99,235,0.3)',
+        borderColor: '#2563eb', borderWidth: 1.5,
+        borderRadius: 2
+      },
+      {
+        label: 'Min–Q1',
+        data: boxData.map(d => [d.min, d.q1]),
+        backgroundColor: 'rgba(148,163,184,0.2)',
+        borderColor: '#94a3b8', borderWidth: 1,
+        borderRadius: 2
+      },
+      {
+        label: 'Q3–Max',
+        data: boxData.map(d => [d.q3, d.max]),
+        backgroundColor: 'rgba(148,163,184,0.2)',
+        borderColor: '#94a3b8', borderWidth: 1,
+        borderRadius: 2
+      },
+      {
+        type: 'scatter',
+        label: 'Median',
+        data: boxData.map((d, i) => ({ x: i, y: d.median })),
+        backgroundColor: '#dc2626',
+        pointRadius: 5, pointStyle: 'line',
+        borderColor: '#dc2626', borderWidth: 2, pointHoverRadius: 7
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 10, font: { size: 9 }, color: '#475569' } },
+      tooltip: {
+        backgroundColor: '#fff', borderColor: '#e2e8f0', borderWidth: 1,
+        titleColor: '#0f172a', bodyColor: '#475569',
+        callbacks: {
+          label: function(c) {
+            if (c.dataset.label === 'Median') return ` Median: ${c.parsed.y} tỷ`;
+            const v = c.parsed._custom || c.raw;
+            if (Array.isArray(v)) return ` ${c.dataset.label}: ${v[0]}–${v[1]} tỷ`;
+            return '';
+          }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { beginAtZero: true, grid: { color: 'rgba(226,232,240,0.7)' }, ticks: { font: { size: 10 }, callback: v => v + ' tỷ' } }
+    }
+  }
+});
+
+// ── 4. Payment donut ──────────────────────────────────
+const payData = [
+  { label: 'Vay ngân hàng',  value: 48, color: '#2563eb' },
+  { label: 'Thanh toán sớm', value: 22, color: '#059669' },
+  { label: 'Tiêu chuẩn',    value: 14, color: '#d97706' },
+  { label: 'Kết hợp HĐ',    value: 7,  color: '#7c3aed' }
+];
+const payTotal = payData.reduce((s, d) => s + d.value, 0);
+const payCtx = document.getElementById('payDonut').getContext('2d');
+new Chart(payCtx, {
+  type: 'doughnut',
+  data: {
+    labels: payData.map(d => d.label),
+    datasets: [{ data: payData.map(d => d.value), backgroundColor: payData.map(d => d.color), borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#fff', borderColor: '#e2e8f0', borderWidth: 1,
+        titleColor: '#0f172a', bodyColor: '#475569',
+        callbacks: { label: c => ` ${c.parsed} căn (${Math.round(c.parsed/payTotal*100)}%)` }
+      }
+    }
+  }
+});
+const payLeg = document.getElementById('payLegend');
+payData.forEach(d => {
+  payLeg.innerHTML += `<div style="margin-bottom:9px">
+    <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${d.color};flex-shrink:0"></div>
+      <div style="font-size:10px;color:var(--text2);line-height:1.2">${d.label}</div>
+    </div>
+    <div style="padding-left:13px;font-size:12px;font-weight:700;color:var(--text)">${d.value} <span style="font-size:10px;font-weight:400;color:var(--text3)">(${Math.round(d.value/payTotal*100)}%)</span></div>
+  </div>`;
+});
+
+// ── 5. Agency detail table ────────────────────────────
+const agencyDetails = [
+  { name: 'Century 21', units: 19, listing: 142, hdmb: 136, thu: 73 },
+  { name: 'DKRA',       units: 16, listing: 118, hdmb: 114, thu: 59 },
+  { name: 'Savills',    units: 13, listing: 96,  hdmb: 93,  thu: 51 },
+  { name: 'Cushman',    units: 12, listing: 88,  hdmb: 85,  thu: 45 },
+  { name: 'JLL',        units: 10, listing: 74,  hdmb: 71,  thu: 38 },
+  { name: 'Đất Xanh',   units: 9,  listing: 65,  hdmb: 63,  thu: 32 },
+  { name: 'Novaland',   units: 7,  listing: 48,  hdmb: 46,  thu: 22 },
+  { name: 'An Gia',     units: 6,  listing: 42,  hdmb: 41,  thu: 20 },
+  { name: 'Phú Long',   units: 5,  listing: 38,  hdmb: 37,  thu: 17 },
+  { name: 'Nam Land',   units: 4,  listing: 31,  hdmb: 30,  thu: 14 }
+];
+const colors = ['#2563eb','#3b82f6','#60a5fa','#93c5fd'];
+const agBody = document.getElementById('agencyBody');
+agencyDetails.forEach((a, i) => {
+  const thuSuat = (a.thu / a.hdmb * 100).toFixed(1);
+  const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
+  const barColor = i < 3 ? '#2563eb' : i < 6 ? '#3b82f6' : '#93c5fd';
+  const barPct = (a.thu / a.hdmb * 100).toFixed(0);
+  agBody.innerHTML += `<tr>
+    <td><span class="rank-badge ${rankClass}">${i+1}</span></td>
+    <td style="font-weight:500">${a.name}</td>
+    <td style="text-align:right;font-weight:600">${a.units}</td>
+    <td style="text-align:right">${a.listing} tỷ</td>
+    <td style="text-align:right">${a.hdmb} tỷ</td>
+    <td style="text-align:right">${a.thu} tỷ</td>
+    <td style="text-align:right;font-weight:600;color:${parseFloat(thuSuat)>=50?'#059669':'#d97706'}">${thuSuat}%</td>
+    <td>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:2px">${a.thu}/${a.hdmb} tỷ</div>
+      <div class="perf-bar-bg"><div class="perf-bar" style="width:${barPct}%;background:${barColor}"></div></div>
+    </td>
+  </tr>`;
+});
+</script>
+</body>
+</html>
